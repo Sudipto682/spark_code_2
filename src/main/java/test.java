@@ -123,6 +123,10 @@ public class test {
             Tuple4<String,Integer,Integer,Integer> t1 = new Tuple4<>(attributes[1],Integer.parseInt(attributes[2]),Integer.parseInt(attributes[3]),Integer.parseInt(attributes[4]));
             return new Tuple2<>(Integer.parseInt(attributes[0]),t1);
         });
+        s1.foreach(x->{
+            System.out.println(x._1());
+            System.out.println(x._2());
+        });
 
         Map<String,Tuple3<Integer,Integer,Integer>> map = r1.collectAsMap();
         HashMap<String,Tuple3<Integer,Integer,Integer>> hmap = new HashMap<>(map);
@@ -157,33 +161,113 @@ public class test {
            }
        }
 
-        s1.foreach(x->{
+        /*s1.foreach(x->{
             System.out.println(x._1+"*****"+x._2);
-        });
+        });*/
 
-       JavaPairRDD<String,Tuple2<String,String>> s_rdd = s_response.mapToPair(x->{
+       JavaPairRDD<String,Tuple3<String,String,Integer>> s_rdd = s_response.mapToPair(x->{
            String[] attributes = x.split("\\|");
-           return new Tuple2<>(attributes[3],new Tuple2<>(attributes[4],attributes[5]));
+           return new Tuple2<>(attributes[3],new Tuple3<>(attributes[4],attributes[5],Integer.parseInt(attributes[0])));
        });
-
-       JavaPairRDD<String,Tuple2<String,String>> s_rdd_filtered = s_rdd.filter(x->{
-           if(x._1().equals('Y'))
-           {
-               if(x._2().equals('R'))
-                   return new Tuple2<>()
-           }
-       })
 
        s_rdd.foreach(x->{
-           System.out.println(x._1()+"-----------"+x._2());
+           System.out.println(x._1()+"::::::::"+x._2());
+       });
+
+       JavaPairRDD<String,Tuple3<String,String,Integer>> s_rdd_filtered = s_rdd.filter(x->{
+           if(x._2()._1().equals("Y"))
+           {
+
+               if(x._2._2().equals("W"))
+                   return true;
+               else return  false;
+           }
+           else if(x._2()._1().equals("N"))
+           {
+               return true;
+           }
+           else
+               return false;
+
+       });
+        System.out.println("++++"+s_rdd_filtered.count());
+
+       s_rdd_filtered.foreach(x->{
+           System.out.println(x._1()+"###########"+x._2());
+       });
+
+       JavaPairRDD<String,String> q_Set = q_data.mapToPair(x->{
+           String[] attributes = x.split("\\|");
+           return new Tuple2<>(attributes[0],attributes[4]);
+       }) ;
+
+       q_Set.foreach(x->{
+           System.out.println(x._1()+"&&&&&&&&&&&"+x._2());
+       });
+       JavaPairRDD<String,Tuple2<String,Tuple3<String,String,Integer>>> a = q_Set.join(s_rdd_filtered).filter(x->{
+          if(x._2()._1().equals("VeryDifficult")|| x._2()._1().equals("Difficult"))
+              return false;
+          else
+              return true;
+       });
+
+       a.foreach(x->{
+           System.out.println(x._1()+x._2());
+       });
+
+       JavaPairRDD<String,String> b = q_data.mapToPair(x->{
+           String[] attributes = x.split("\\|");
+           return new Tuple2<>(attributes[0],attributes[3]);
+       });
+        b.foreach(x->{
+            System.out.println(x._1()+"  "+x._2());
+        });
+        JavaPairRDD<String,Tuple2<String,Tuple2<String,Tuple3<String,String,Integer>>>> c =b.join(a);
+
+        c.foreach(x->{
+            System.out.println(x._1()+"---------------->"+x._2());
+        });
+
+      /*  JavaPairRDD<Integer,String> d = c.map(x->{
+            return new Tuple2<>(x._2()._2()._2()._3(), x._1());
+        });*/
+        JavaRDD<Tuple2<String,Integer>> map1 = c.map(x -> new Tuple2( x._2()._1(),x._2()._2()._2()._3()));
+        map1.foreach(x-> System.out.println(x));
+        JavaPairRDD<String,Integer> w = JavaPairRDD.fromJavaRDD(map1);
+
+       JavaPairRDD<String,Tuple2<String,String>> map2 = q_data.mapToPair(x->{
+           String[] attributes = x.split("\\|");
+           return new Tuple2(attributes[3],new Tuple2<>(attributes[0],attributes[4]));
+
+       });
+       JavaPairRDD<String,Tuple2<String,String>> map3 = map2.filter(x->{
+           if(x._2()._2().equals("Easy")|| x._2()._2().equals("Medium"))
+               return true;
+           else return false;
+       });
+        System.out.println(map3.count());
+       map3.foreach(x->{
+           System.out.println(x._1()+"////////"+x._2());
+       });
+
+       JavaPairRDD<String,Tuple2<Integer,Tuple2<String,String>>> res =w.join(map3);
+
+       /* Tuple2<String,Integer> col = res.mapToPair(x->{
+           return new Tuple2<String,Integer>(x._1(),x._2()._1());
+       });
+        System.out.println("^^^^^"+col);*/
+
+       res.take(10).forEach(System.out::println);
+
+
+       JavaRDD<Student> res_1 = res.map(x->{
+           Student s = new Student(x._2()._1(),x._1(),x._2()._2()._1(),x._2()._2()._2());
+           return s;
        });
 
 
 
-
-
-
-
+      // res_1.aggregate()
 
 
     }
